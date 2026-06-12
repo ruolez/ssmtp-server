@@ -40,6 +40,7 @@
       .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`)
       .join("");
 
+    // Synthesize a "received/queued" origin step, then each delivery event.
     const steps = [
       {
         title: "Received & queued",

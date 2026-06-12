@@ -51,6 +51,7 @@
     openModal("credsModal");
   }
 
+  // --- create ---
   document.getElementById("newAppBtn").addEventListener("click", () => {
     document.getElementById("appName").value = "";
     document.getElementById("appUser").value = "";
@@ -79,6 +80,7 @@
     load();
   });
 
+  // --- row actions ---
   body.addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");
     if (!btn) return;
@@ -106,6 +108,7 @@
     }
   });
 
+  // --- modal plumbing ---
   document.querySelectorAll("[data-close]").forEach((b) =>
     b.addEventListener("click", () => closeModal(b.dataset.close))
   );
