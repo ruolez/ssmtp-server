@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block heading %}Settings{% endblock %}
+{% block subheading %}Relay identity and delivery behaviour.{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start">
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Identity</div></div>
+    <div class="panel-body">
+      <dl class="kv">
+        <dt>Mail hostname</dt><dd id="setHostname">—</dd>
+        <dt>Sending domain</dt><dd id="setDomain">—</dd>
+        <dt>Server IP</dt><dd id="setIp">—</dd>
+      </dl>
+      <p class="hint" style="margin-top:14px">
+        These are set at install time via <span class="mono">install.sh</span> and the <span class="mono">.env</span> file.
+        Re-run the installer's update flow to change them.
+      </p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Delivery</div></div>
+    <div class="panel-body">
+      <div class="field">
+        <label for="maxRetries">Max delivery attempts before bounce</label>
+        <input id="maxRetries" type="number" min="1" max="100" />
+        <div class="hint">Haraka retries deferred messages with backoff up to this many times.</div>
+      </div>
+      <div class="field">
+        <label for="defaultRate">Default per-app rate limit (per hour, 0 = unlimited)</label>
+        <input id="defaultRate" type="number" min="0" />
+      </div>
+      <button class="btn btn-primary" id="saveBtn">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <div class="panel-head"><div class="panel-title">Domains</div></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Domain</th><th>DKIM selector</th><th>DNS verified</th></tr></thead>
+      <tbody id="domainsBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/settings.js"></script>{% endblock %}

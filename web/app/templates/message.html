@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Message{% endblock %}
+{% block heading %}Message detail{% endblock %}
+{% block subheading %}Full lifecycle from submission to final delivery state.{% endblock %}
+
+{% block content %}
+<a href="/" class="btn btn-ghost btn-sm" style="margin-bottom:18px">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  Back to activity
+</a>
+
+<div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:18px; align-items:start">
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Envelope</div><span id="msgStatus"></span></div>
+    <div class="panel-body"><dl class="kv" id="msgMeta"><dt class="dim">Loading…</dt><dd></dd></dl></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Delivery timeline</div></div>
+    <div class="panel-body"><div class="timeline" id="timeline"></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.MESSAGE_ID = {{ message_id }};</script>
+<script src="/static/js/message.js"></script>
+{% endblock %}

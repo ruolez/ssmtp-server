@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}DNS & DKIM{% endblock %}
+{% block heading %}DNS &amp; DKIM{% endblock %}
+{% block subheading %}Publish these records for {{ mail_domain }}, then verify they resolve.{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-head">
+    <div class="panel-title">Required records for <span class="mono">{{ mail_domain }}</span></div>
+    <button class="btn btn-primary btn-sm" id="verifyBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      Verify now
+    </button>
+  </div>
+  <div class="panel-body">
+    <p class="muted" style="margin-top:0">
+      Add each record at your DNS provider. The <strong>PTR</strong> (reverse DNS) record is set in your
+      VPS provider's control panel, not at your DNS host — it must map your server IP back to
+      <span class="mono">{{ mail_hostname }}</span>.
+    </p>
+    <div id="dnsList"><div class="empty">Loading records…</div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/dns.js"></script>{% endblock %}

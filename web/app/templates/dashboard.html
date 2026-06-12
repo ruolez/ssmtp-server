@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Activity{% endblock %}
+{% block heading %}Activity{% endblock %}
+{% block subheading %}Every message accepted by the relay and its delivery outcome.{% endblock %}
+
+{% block content %}
+<div class="stat-grid" id="statGrid">
+  <div class="stat"><div class="stat-label">Total messages</div><div class="stat-value" data-stat="total">—</div><div class="stat-foot" data-stat="last_24h_foot">last 24h: —</div></div>
+  <div class="stat ok"><div class="stat-label">Delivered</div><div class="stat-value" data-stat="sent">—</div><div class="stat-foot">accepted by remote MX</div></div>
+  <div class="stat warn"><div class="stat-label">Deferred / pending</div><div class="stat-value" data-stat="deferred_pending">—</div><div class="stat-foot">awaiting retry</div></div>
+  <div class="stat bad"><div class="stat-label">Bounced</div><div class="stat-value" data-stat="bounced">—</div><div class="stat-foot">permanently failed</div></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="searchInput" placeholder="Search recipient, sender or subject…" />
+      </div>
+      <div class="seg" id="statusSeg">
+        <button data-status="all" class="active">All</button>
+        <button data-status="sent">Sent</button>
+        <button data-status="deferred">Deferred</button>
+        <button data-status="bounced">Bounced</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="refreshBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Status</th><th>Recipient</th><th>Subject</th><th>App</th><th>From</th><th>Received</th>
+        </tr>
+      </thead>
+      <tbody id="msgBody">
+        <tr><td colspan="6" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/dashboard.js"></script>{% endblock %}
