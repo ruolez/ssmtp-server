@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ssmtp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ssmtp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ssmtp-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-ssmtp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ssmtp} -d ${POSTGRES_DB:-ssmtp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build: ./web
+    container_name: ssmtp-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-ssmtp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ssmtp-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-ssmtp}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-change-me}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-only-internal-secret-change-me}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
+      SERVER_IP: ${SERVER_IP:-203.0.113.10}
+    volumes:
+      # web owns DKIM keys: generates them and renders the public DNS record.
+      - dkim_keys:/dkim
+    ports:
+      # Direct plain-HTTP access for local dev / health checks.
+      # In production the dashboard is reached via Caddy on 443.
+      - "${WEB_DEV_PORT:-8025}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  haraka:
+    build: ./haraka
+    container_name: ssmtp-haraka
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    environment:
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-ssmtp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ssmtp-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-ssmtp}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-only-internal-secret-change-me}
+      WEB_INTERNAL_URL: http://web:8000
+    volumes:
+      # Read-only: bundled dkim_sign plugin reads keys from config/dkim/<domain>/
+      - dkim_keys:/app/config/dkim:ro
+    ports:
+      - "25:25"     # outbound delivery + (optional) inbound; relay gated by auth
+      - "587:587"   # submission (STARTTLS)
+      - "465:465"   # submission (implicit TLS)
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ssmtp-caddy
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+    environment:
+      MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+      ACME_CA: ${ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  postgres_data:
+  # Persistent ACME certificates/keys. NEVER deleted on update — only on full
+  # uninstall — to avoid Let's Encrypt rate limits / over-issuance.
+  caddy_data:
+  caddy_config:
+  # DKIM keypairs, generated once by install.sh; shared read-only with web.
+  dkim_keys:

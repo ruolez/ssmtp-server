@@ -1,0 +1,7 @@
+# Enabled plugins, in order. Outbound MX delivery is built into Haraka core and
+# happens automatically for authenticated (relaying) mail — no queue plugin.
+tls
+auth_apps
+dkim
+event_logger
+outbound_logger

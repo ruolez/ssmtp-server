@@ -1,0 +1,12 @@
+{
+  "name": "ssmtp-haraka",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Haraka outbound relay engine for ssmtp-server",
+  "dependencies": {
+    "Haraka": "^3.1.1",
+    "bcryptjs": "^2.4.3",
+    "haraka-plugin-dkim": "^1.0.4",
+    "pg": "^8.12.0"
+  }
+}

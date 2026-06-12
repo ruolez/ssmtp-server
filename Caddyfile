@@ -1,0 +1,14 @@
+# Caddy reverse proxy for the ssmtp-server dashboard.
+# Automatic Let's Encrypt issuance + renewal. Certs persist in the caddy_data
+# volume and survive container rebuilds, so updates never re-issue.
+
+{
+	email {$ACME_EMAIL}
+	# Staging or production ACME directory, chosen by install.sh via ACME_CA.
+	acme_ca {$ACME_CA}
+}
+
+{$MAIL_HOSTNAME} {
+	encode gzip
+	reverse_proxy web:8000
+}
