@@ -25,6 +25,17 @@ require_root() {
 
 rand() { head -c "${1:-32}" /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c "${1:-32}"; }
 
+# Force the local checkout to match the canonical repo exactly. Re-points the
+# origin at REPO_URL (in case it ever drifted) and hard-resets to origin/main.
+# Safe for our layout: .env, db backups and data volumes are gitignored and are
+# never touched by the reset.
+sync_repo() {
+  git -C "$INSTALL_DIR" remote set-url origin "$REPO_URL" 2>/dev/null \
+    || git -C "$INSTALL_DIR" remote add origin "$REPO_URL"
+  git -C "$INSTALL_DIR" fetch origin main
+  git -C "$INSTALL_DIR" reset --hard origin/main
+}
+
 detect_ip() {
   local ip
   ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || true)
@@ -160,10 +171,10 @@ do_install() {
   install_docker
 
   if [ -d "$INSTALL_DIR/.git" ]; then
-    print_info "Existing install found; pulling latest..."
-    git -C "$INSTALL_DIR" pull --ff-only
+    print_info "Existing install found; syncing with $REPO_URL ..."
+    sync_repo
   else
-    print_info "Cloning repository..."
+    print_info "Cloning $REPO_URL ..."
     git clone "$REPO_URL" "$INSTALL_DIR"
   fi
 
@@ -200,8 +211,8 @@ do_update() {
     print_warning "Could not back up database (continuing)"
   fi
 
-  print_info "Pulling latest code..."
-  git -C "$INSTALL_DIR" pull --ff-only
+  print_info "Fetching latest code from $REPO_URL ..."
+  sync_repo
 
   print_info "Rebuilding app containers (cert volume preserved)..."
   docker compose -f "$INSTALL_DIR/docker-compose.yml" --env-file "$ENV_FILE" up -d --build
