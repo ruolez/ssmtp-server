@@ -33,21 +33,36 @@ function postEvent(plugin, payload) {
   req.end();
 }
 
+// Convert a Haraka address object to a string. Across address-rfc2821 versions
+// `.address` is sometimes a method and sometimes a plain string property, so
+// handle both rather than assuming one shape.
+function addrToString(addr) {
+  if (!addr) return null;
+  if (typeof addr.address === 'function') return addr.address();
+  if (typeof addr.address === 'string') return addr.address;
+  return typeof addr.toString === 'function' ? addr.toString() : String(addr);
+}
+
 function logQueued(plugin, connection) {
   const txn = connection.transaction;
   if (!txn) return;
-  const subject = txn.header.get('Subject');
-  const messageId = txn.header.get('Message-ID');
-  postEvent(plugin, {
-    type: 'queued',
-    uuid: txn.uuid,
-    app_id: connection.notes.app_id || null,
-    mail_from: txn.mail_from ? txn.mail_from.address() : null,
-    rcpt_to: txn.rcpt_to.map((r) => r.address()).join(', '),
-    subject: subject ? subject.trim() : null,
-    message_id: messageId ? messageId.trim() : null,
-    size: txn.data_bytes || null,
-  });
+  try {
+    const subject = txn.header.get('Subject');
+    const messageId = txn.header.get('Message-ID');
+    postEvent(plugin, {
+      type: 'queued',
+      uuid: txn.uuid,
+      app_id: connection.notes.app_id || null,
+      mail_from: addrToString(txn.mail_from),
+      rcpt_to: (txn.rcpt_to || []).map(addrToString).filter(Boolean).join(', '),
+      subject: subject ? subject.trim() : null,
+      message_id: messageId ? messageId.trim() : null,
+      size: txn.data_bytes || null,
+    });
+  } catch (e) {
+    // Never let a logging error disrupt mail flow.
+    plugin.logerror('event_logger logQueued error: ' + e.message);
+  }
 }
 
 // Relaying (authenticated) mail fires queue_outbound; keep hook_queue too for
