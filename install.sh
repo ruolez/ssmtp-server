@@ -100,12 +100,54 @@ prompt_config() {
   echo
   print_info "TLS certificate mode:"
   print_info "  1) Production  — real trusted certs (use for go-live)"
-  print_info "  2) Staging     — test certs, high rate limits (use while testing DNS)"
-  read -rp "Choose [1/2, default 2]: " acme_choice
-  if [ "${acme_choice:-2}" = "1" ]; then
-    ACME_CA="https://acme-v02.api.letsencrypt.org/directory"
-  else
+  print_info "  2) Staging     — untrusted test certs, high rate limits (browsers will show errors)"
+  read -rp "Choose [1/2, default 1]: " acme_choice
+  if [ "${acme_choice:-1}" = "2" ]; then
     ACME_CA="https://acme-staging-v02.api.letsencrypt.org/directory"
+  else
+    ACME_CA="https://acme-v02.api.letsencrypt.org/directory"
+  fi
+}
+
+# Let's Encrypt can only issue the console cert if MAIL_HOSTNAME resolves to
+# this server. Warn loudly before starting Caddy, otherwise the dashboard
+# fails TLS handshakes (ERR_SSL_PROTOCOL_ERROR) with no obvious cause.
+check_dns() {
+  print_info "Checking that $MAIL_HOSTNAME resolves to $SERVER_IP ..."
+  local resolved=""
+  resolved=$(getent hosts "$MAIL_HOSTNAME" 2>/dev/null | awk '{print $1}' | head -1)
+  [ -n "$resolved" ] || resolved=$(dig +short "$MAIL_HOSTNAME" A 2>/dev/null | head -1)
+
+  if [ "$resolved" = "$SERVER_IP" ]; then
+    print_success "DNS OK: $MAIL_HOSTNAME -> $resolved"
+    return 0
+  fi
+
+  if [ -z "$resolved" ]; then
+    print_warning "$MAIL_HOSTNAME does not resolve — no A record found."
+  else
+    print_warning "$MAIL_HOSTNAME resolves to $resolved, not $SERVER_IP."
+  fi
+  print_warning "Let's Encrypt cannot issue a certificate until an A record"
+  print_warning "for $MAIL_HOSTNAME points at $SERVER_IP. HTTPS will fail with"
+  print_warning "ERR_SSL_PROTOCOL_ERROR until then. Caddy retries automatically"
+  print_warning "once DNS is fixed — no reinstall needed."
+  read -rp "Continue anyway? [Y/n]: " yn
+  [[ "${yn:-Y}" =~ ^[Nn]$ ]] && { print_info "Aborted"; exit 0; }
+  return 0
+}
+
+# Older installs defaulted to the Let's Encrypt STAGING CA, whose certs are
+# not trusted by browsers. Offer to migrate an existing .env to production.
+ensure_production_acme() {
+  [ -f "$ENV_FILE" ] || return 0
+  grep -q 'acme-staging' "$ENV_FILE" || return 0
+
+  print_warning "This install uses Let's Encrypt STAGING (untrusted test certs)."
+  read -rp "Switch to PRODUCTION certificates? [Y/n]: " yn
+  if [[ ! "${yn:-Y}" =~ ^[Nn]$ ]]; then
+    sed -i 's|^ACME_CA=.*|ACME_CA=https://acme-v02.api.letsencrypt.org/directory|' "$ENV_FILE"
+    print_success "ACME_CA switched to production (Caddy re-issues on restart)"
   fi
 }
 
@@ -195,6 +237,7 @@ do_install() {
   prompt_config
   write_env
   configure_firewall
+  check_dns
 
   print_info "Building and starting containers (first build may take a few minutes)..."
   docker compose -f "$INSTALL_DIR/docker-compose.yml" --env-file "$ENV_FILE" up -d --build
@@ -227,6 +270,8 @@ do_update() {
 
   print_info "Fetching latest code from $REPO_URL ..."
   sync_repo
+
+  ensure_production_acme
 
   print_info "Rebuilding app containers (cert volume preserved)..."
   docker compose -f "$INSTALL_DIR/docker-compose.yml" --env-file "$ENV_FILE" up -d --build

@@ -87,6 +87,7 @@ services:
         condition: service_started
     environment:
       MAIL_HOSTNAME: ${MAIL_HOSTNAME:-mail.example.com}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-example.com}
       ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
       ACME_CA: ${ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
     volumes:

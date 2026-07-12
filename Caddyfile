@@ -12,3 +12,10 @@
 	encode gzip
 	reverse_proxy web:8000
 }
+
+# Bare domain -> console. Needs an A record for the apex pointing at this
+# server; if the apex is hosted elsewhere, Caddy just logs failed cert
+# attempts for it and the console site above keeps working.
+{$MAIL_DOMAIN} {
+	redir https://{$MAIL_HOSTNAME}{uri} permanent
+}
