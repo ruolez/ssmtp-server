@@ -1,6 +1,7 @@
 FROM node:20-bookworm-slim
 
-# openssl: generate the self-signed cert used for submission STARTTLS/implicit TLS.
+# openssl: bootstrap self-signed cert used only until Caddy's first Let's
+# Encrypt issuance (entrypoint.sh swaps in the real cert).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*

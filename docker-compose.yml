@@ -73,6 +73,10 @@ services:
     volumes:
       # Read-only: bundled dkim_sign plugin reads keys from config/dkim/<domain>/
       - dkim_keys:/app/config/dkim:ro
+      # Read-only: submission TLS (587/465) reuses Caddy's Let's Encrypt cert
+      # for MAIL_HOSTNAME instead of a self-signed one, which verifying SMTP
+      # clients reject.
+      - caddy_data:/caddy:ro
     ports:
       - "25:25"     # outbound delivery + (optional) inbound; relay gated by auth
       - "587:587"   # submission (STARTTLS)
